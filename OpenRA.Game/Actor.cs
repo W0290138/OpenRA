@@ -263,21 +263,21 @@ namespace OpenRA
 		{
 			World.AddFrameEndTask(w =>
 			{
-				if (Disposed)
-					return;
+                if (!Disposed)
+                {
+                    if (IsInWorld)
+                        World.Remove(this);
 
-				if (IsInWorld)
-					World.Remove(this);
+                    foreach (var t in TraitsImplementing<INotifyActorDisposing>())
+                        t.Disposing(this);
 
-				foreach (var t in TraitsImplementing<INotifyActorDisposing>())
-					t.Disposing(this);
+                    World.TraitDict.RemoveActor(this);
+                    Disposed = true;
 
-				World.TraitDict.RemoveActor(this);
-				Disposed = true;
-
-				if (luaInterface != null)
-					luaInterface.Value.OnActorDestroyed();
-			});
+                    if (luaInterface != null)
+                        luaInterface.Value.OnActorDestroyed();
+                }
+            });
 		}
 
 		// TODO: move elsewhere.
@@ -285,24 +285,25 @@ namespace OpenRA
 		{
 			World.AddFrameEndTask(w =>
 			{
-				if (Disposed)
-					return;
+                if (!Disposed)
+                {
 
-				var oldOwner = Owner;
-				var wasInWorld = IsInWorld;
+                    var oldOwner = Owner;
+                    var wasInWorld = IsInWorld;
 
-				// momentarily remove from world so the ownership queries don't get confused
-				if (wasInWorld)
-					w.Remove(this);
+                    // momentarily remove from world so the ownership queries don't get confused
+                    if (wasInWorld)
+                        w.Remove(this);
 
-				Owner = newOwner;
-				Generation++;
+                    Owner = newOwner;
+                    Generation++;
 
-				foreach (var t in TraitsImplementing<INotifyOwnerChanged>())
-					t.OnOwnerChanged(this, oldOwner, newOwner);
+                    foreach (var t in TraitsImplementing<INotifyOwnerChanged>())
+                        t.OnOwnerChanged(this, oldOwner, newOwner);
 
-				if (wasInWorld)
-					w.Add(this);
+                    if (wasInWorld)
+                        w.Add(this);
+                }
 			});
 		}
 
